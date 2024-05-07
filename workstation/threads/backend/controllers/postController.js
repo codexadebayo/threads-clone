@@ -45,14 +45,16 @@ const getPost = async (req, res) => {
   }
 };
 
-const getAllPosts = async (req, res) => {
+const getFeedPosts = async (req, res) => {
   try {
-    const posts = await Post.find({});
-    if (posts.length === 0)
-      return res.status(200).json({ message: "No posts yet" });
-    res.status(200).json({ posts });
+    const userId = req.user._id
+    const user = await User.findById(userId)
+    if (!user) return res.status(404).json({message: "User not found"})
+    const following = user.following
+    const feedPosts = await Post.find({postedBy: {$in: following }}).sort({createdAt: -1});
+    res.status(200).json({feedPosts})
   } catch (error) {
-    res.status(500).json({ message: "Error in getting all posts" });
+    res.status(500).json({ message: "Error in getting feed" });
     console.log(error);
   }
 };
@@ -75,38 +77,67 @@ const deletePost = async (req, res) => {
 
 const likeUnlike = async (req, res) => {
   try {
-    const {id:postId} = req.params
+    const { id: postId } = req.params;
     const userId = req.user._id;
     const post = await Post.findById(postId);
 
-
-    if (!post) return res.status(401).json({message: "post does not exist"});
-    if (!userId) return res.status(401).json({message: "invalid user"})
+    if (!post) return res.status(401).json({ message: "post does not exist" });
+    if (!userId) return res.status(401).json({ message: "invalid user" });
 
     const userLikedPost = post.likes.includes(userId);
-    if(userLikedPost){
-      await Post.updateOne({_id: postId}, {$pull: {likes: userId}})
-      res.status(200).json({message: "post unliked successfully"})
-
-    } else{
-      post.likes.push(userId)
-      await post.save()
-      res.status(200).json({message: "post liked successfully"})
-
+    if (userLikedPost) {
+      await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+      res.status(200).json({ message: "post unliked successfully" });
+    } else {
+      post.likes.push(userId);
+      await post.save();
+      res.status(200).json({ message: "post liked successfully" });
     }
 
-
-    
-    
     //update the likes array with the user id
-  
-
-
-
-
   } catch (error) {
     res.status(500).json({ message: "Error in likeUnlike" });
     console.log(error);
   }
 };
-export { createPost, getPost, getAllPosts, deletePost, likeUnlike };
+
+const replyToPost = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const postId = req.params.id;
+    const userId = req.user._id;
+    const userProfilePic = req.user.profilePic;
+    const username = req.user.username;
+
+    if (!text) return res.status(400).json({ message: "text field is required"});
+    const post = await Post.findById(postId)
+    if (!post) return res.status(404).json({ message: "Post not found" });
+    const reply = {userId, text, username, userProfilePic}; 
+    post.replies.push(reply)
+    res.status(200).json({message: "Reply sent successfully", post})
+    await post.save()
+
+  } catch (error) {
+    res.status(500).json({ message: "Error in comment" });
+    console.log(error);
+  }
+};
+const getRandomPosts = async ()=>{
+  try {
+    const posts = await Post.find({});
+    if (posts.length === 0)
+      return res.status(200).json({ message: "No posts yet" });
+    res.status(200).json({ posts });
+  } catch (error) {
+    
+  }
+}
+export {
+  createPost,
+  getPost,
+  getFeedPosts,
+  deletePost,
+  likeUnlike,
+  replyToPost,
+  getRandomPosts
+};
