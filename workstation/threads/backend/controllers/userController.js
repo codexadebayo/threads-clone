@@ -114,14 +114,25 @@ const updateUser = async (req, res) => {
     user.profilePic = profilePic || user.profilePic;
     user.bio = bio || user.bio;
     user = await user.save();
-    res.status(200).json({ message: "Profile updated successfully"});
+    res.status(200).json({ message: "Profile updated successfully"}, user.select("-password"));
   } catch (error) {
     res.status(500).json({ message: error.message });
     console.log("error in updating User", error.message);
   }
 };
 
-const getUserProfile = ()=>{
+const getUserProfile = async (req, res)=>{
+  const {username} = req.params;
+  try {
+    const user = await User.findOne({username}).select("-password").select("-updatedAt");
+    if (!user) return res.status(400).json({message: "User not found"});
+    res.status(200).json(user);
+    
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+    console.log("error in updating User", error.message);
+    
+  }
 
-}
+};
 export { signupUser, loginUser, logoutUser, followUnfollowUser, updateUser, getUserProfile };
