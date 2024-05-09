@@ -1,4 +1,5 @@
-import { Button, useToast } from "@chakra-ui/react";
+import { Button } from "@chakra-ui/react";
+import { FiLogOut } from "react-icons/fi";
 
 import React from "react";
 import { useSetRecoilState } from "recoil";
@@ -38,7 +39,7 @@ const LogoutButton = () => {
       size={"sm"}
       onClick={handleLogout}
     >
-      Logout
+      <FiLogOut size={20}/>
     </Button>
   );
 };
