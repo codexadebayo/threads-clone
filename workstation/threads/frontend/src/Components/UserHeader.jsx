@@ -10,34 +10,84 @@ import {
   MenuList,
   MenuItem,
   MenuButton,
+  Button,
   Portal,
   useToast,
 } from "@chakra-ui/react";
+import { Link as RouterLink } from "react-router-dom";
 import { BsInstagram } from "react-icons/bs";
 import "./CSS/UserHeader.css";
 import { CgMoreO } from "react-icons/cg";
+import { useRecoilValue } from "recoil";
+import userAtom from "../atoms/userAtom";
+import { useState } from "react";
+import useShowToast from "../hooks/useShowToast";
 
-const UserHeader = () => {
-  const toast = useToast();
+const UserHeader = ({ user }) => {
+  const showToast = useShowToast();
+  const currentUser = useRecoilValue(userAtom); //logged in user
+  const [following, setFollowing] = useState(
+    user.followers.includes(currentUser._id)
+  );
+  const [updating, setUpdating] = useState(false);
+
+  console.log(following);
+
+  const toggleFollow = async () => {
+    if(!currentUser){
+      showToast("Error", "Please login to follow", "error");
+      return;
+    }
+    if(updating) return;
+    setUpdating(true)
+    try {
+      const res = await fetch(`/api/users/follow/${user._id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (data.error) {
+        showToast("Error", data.error, "error");
+        return;
+      }
+
+      if (following) {
+        showToast("success", `Unfollowed ${user.name}`, "success");
+        console.log(`Unfollowed ${user.name} Successfully`);
+        user.followers.pop();
+      } else {
+        showToast("success", `Followed ${user.name}`, "success");
+        console.log(`Followed ${user.name} Successfully`);
+        user.followers.push(currentUser._id);
+      }
+      setFollowing(!following);
+
+      console.log(data);
+    } catch (error) {
+      showToast("Error", error, "error")
+      console.log(`Error: ${error}`);
+    } finally{
+      setUpdating(false)
+    }
+  };
+
   const copyURL = () => {
     const currentURL = window.location.href;
-    navigator.clipboard.writeText(currentURL).then(() =>
-      toast({
-        description: "profile link copied.",
-        duration: 3000,
-        isClosable: true,
-      })
+    navigator.clipboard.writeText(currentURL).then(() => showToast("Copied", "profile link", "success")
     );
   };
+
   return (
     <VStack gap={4} alignItems={"start"}>
       <Flex justifyContent={"space-between"} w={"full"} className="user-banner">
         <Box>
           <Text fontSize={"2xl"} fontWeight={"bold"}>
-            Username
+            {user.name}
           </Text>
           <Flex gap={2} alignItems={"center"}>
-            <Text fontSize={"sm"}>User Description</Text>
+            <Text fontSize={"sm"}>{user.username}</Text>
             <Text
               fontSize={"xm"}
               bg={"#1e1e1e"}
@@ -50,31 +100,48 @@ const UserHeader = () => {
           </Flex>
         </Box>
         <Box>
-          <Avatar
-            name="David Adebayo"
-            src="https://bit.ly/sage-adebayo"
-            size={
-                {
-                    base:'md',
-                    md: 'xl'
-                }
-            }
-          />
+          {user.profilePic && (
+            <Avatar
+              name={user.name}
+              src={user.profilePic}
+              size={{
+                base: "md",
+                md: "xl",
+              }}
+            />
+          )}
+          {!user.profilePic && (
+            <Avatar
+              name={user.name}
+              src="https://bit.ly/broken-link"
+              size={{
+                base: "md",
+                md: "xl",
+              }}
+            />
+          )}
         </Box>
       </Flex>
       <Flex className="user-description">
-        <Text>
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates,
-          impedit.
-        </Text>
+        <Text>{user.bio}</Text>
       </Flex>
+      {currentUser._id === user._id && (
+        <Link as={RouterLink} to="/update">
+          <Button size={"sm"}>Update Profile</Button>
+        </Link>
+      )}
+      {currentUser._id !== user._id && (
+        <Button size={"sm"} onClick={toggleFollow} isLoading={updating}>
+          {following ? "Unfollow" : "Follow"}
+        </Button>
+      )}
       <Flex
         width={"full"}
         justifyContent={"space-between"}
         className="banner-footer"
       >
         <Flex gap={2} alignItems={"center"}>
-          <Text color={"gray.light"}>followers</Text>
+          <Text color={"gray.light"}>{user.followers.length} Followers</Text>
           <Box w={1} h={1} bg={"gray.light"} borderRadius={"full"}></Box>
           <Link color={"gray.light"}>instagram.com</Link>
         </Flex>
@@ -84,7 +151,7 @@ const UserHeader = () => {
           </Box>
 
           <Box className="icon-bg">
-          <Menu>
+            <Menu>
               <MenuButton>
                 <CgMoreO size={24} cursor={"pointer"} />
               </MenuButton>

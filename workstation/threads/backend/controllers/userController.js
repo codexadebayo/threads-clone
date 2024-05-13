@@ -90,11 +90,11 @@ const followUnfollowUser = async (req, res) => {
     if (isFollowing) {
       await User.findByIdAndUpdate(req.user._id, { $pull: { following: id } });
       await User.findByIdAndUpdate(id, { $pull: { followers: req.user._id } });
-      res.status(200).json({ message: "unfollowed user" });
+      res.status(200).json({ message: "successfully unfollowed user" });
     } else {
       await User.findByIdAndUpdate(req.user._id, { $push: { following: id } });
       await User.findByIdAndUpdate(id, { $push: { followers: req.user._id } });
-      res.status(200).json({ message: "followed user" });
+      res.status(200).json({ message: "successfully followed user" });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -127,7 +127,10 @@ const updateUser = async (req, res) => {
     user.profilePic = profilePic || user.profilePic;
     user.bio = bio || user.bio;
     user = await user.save();
-    res.status(200).json({ message: "Profile updated successfully"}, user.select("-password"));
+// protect user password by making it null
+    user.password = null
+
+    res.status(200).json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
     console.log("error in updating User", err.message);

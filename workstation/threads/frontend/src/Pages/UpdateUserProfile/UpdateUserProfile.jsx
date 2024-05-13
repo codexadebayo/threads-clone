@@ -14,7 +14,6 @@ import { useState, useRef } from "react";
 import { useRecoilState } from "recoil";
 import userAtom from "../../atoms/userAtom";
 import usePreviewImg from "../../hooks/usePreviewImg";
-import { Form } from "react-router-dom";
 import useShowToast from "../../hooks/useShowToast";
 
 export default function UpdateUserProfile() {
@@ -29,22 +28,42 @@ export default function UpdateUserProfile() {
   });
 
   const fileRef = useRef(null);
-  const showToast = useShowToast()
+  const showToast = useShowToast();
+  const [updating, setUpdating] = useState(false)
 
   const { handleImageChange, imgUrl } = usePreviewImg();
-  const handleSubmit = async (e)=>{
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if(updating) return;
+    setUpdating(true)
     try {
-        console.log(inputs)
-        
+      const res = await fetch(`/api/users/update/${user._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({...inputs, profilePic:imgUrl}),
+      })
+      const data = await res.json();
+      if(data.error){
+        showToast("Error", data.error, "error")
+        return;
+      }
+      showToast("Successful", "Profile updated successfully", "success");
+      setUser(data);
+      localStorage.setItem("user-threads", JSON.stringify(data));
     } catch (error) {
-        showToast('Error submitting request', "Unable to update profile. Try again", "error") 
+      showToast(
+        "Error submitting request",
+        "Unable to update profile. Try again",
+        "error"
+      );
+    } finally {
+      setUpdating(false);
     }
-  }
-
-  console.log(user);
+  };
   return (
-    <Form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
       <Flex align={"center"} justify={"center"} my={6}>
         <Stack
           spacing={4}
@@ -81,7 +100,7 @@ export default function UpdateUserProfile() {
               </Center>
             </Stack>
           </FormControl>
-          <FormControl isRequired>
+          <FormControl >
             <FormLabel>Username</FormLabel>
             <Input
               placeholder="UserName"
@@ -93,7 +112,7 @@ export default function UpdateUserProfile() {
               type="text"
             />
           </FormControl>
-          <FormControl isRequired>
+          <FormControl >
             <FormLabel>Full Name</FormLabel>
             <Input
               placeholder="Full Name"
@@ -103,7 +122,7 @@ export default function UpdateUserProfile() {
               type="text"
             />
           </FormControl>
-          <FormControl isRequired>
+          <FormControl >
             <FormLabel>Email address</FormLabel>
             <Input
               placeholder="your-email@example.com"
@@ -120,7 +139,7 @@ export default function UpdateUserProfile() {
               _placeholder={{ color: "gray.light" }}
               value={inputs.bio}
               onChange={(e) =>
-                setInputs({ ...inputs, username: e.target.value })
+                setInputs({ ...inputs, bio: e.target.value })
               }
               type="text"
             />
@@ -156,12 +175,13 @@ export default function UpdateUserProfile() {
                 bg: "green.500",
               }}
               type="submit"
+              isLoading={updating}
             >
               Submit
             </Button>
           </Stack>
         </Stack>
       </Flex>
-    </Form>
+    </form>
   );
 }
