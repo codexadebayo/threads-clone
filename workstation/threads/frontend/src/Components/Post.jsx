@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Flex,
   Box,
@@ -16,8 +16,25 @@ import { Avatar } from "@chakra-ui/avatar";
 import Actions from "./Actions";
 import { Link } from "react-router-dom";
 
-const UserPost = ({ postImg, postTitle, likes, comments }) => {
+
+const Post = ({post, postedBy}) => {
   const [liked, setLiked] = useState(false);
+  useEffect(()=>{
+    const getUser = async ()=>{
+        try {
+            const res = await fetch("/api/users/profile" + postedBy)
+            const data = await res.json()
+            console.log(data);
+            if(data.error){
+                console.log("Error: ", data.error);
+                return;
+            }    
+        } catch (err) {
+            console.log("Error: ", err);
+        }
+    }
+  },[postedBy])
+  //fetch the postedBy profilePic and username
   return (
     // <Link to={"/badman/post/8"}>
     <Link to={"/badman/post/8"}>
@@ -92,8 +109,8 @@ const UserPost = ({ postImg, postTitle, likes, comments }) => {
               </Menu>
             </Flex>
           </Flex>
-          <Text fontSize={"sm"}>{postTitle}</Text>
-          {postImg && (
+          <Text fontSize={"sm"}>{post.text}</Text>
+          {post.img && (
             <Box
               position={"relative"}
               borderRadius={6}
@@ -101,7 +118,7 @@ const UserPost = ({ postImg, postTitle, likes, comments }) => {
               border={"1px solid"}
               borderColor={"gray.light"}
             >
-              <Image src={postImg} w={"full"} />
+              <Image src={post.img} w={"full"} />
             </Box>
           )}
           <Flex gap={3} my={1}>
@@ -110,11 +127,13 @@ const UserPost = ({ postImg, postTitle, likes, comments }) => {
 
           <Flex gap={2} alignItems={"center"}>
             <Text color={"gray.light"} fontSize={"sm"}>
-              {comments} comments
+            { post.comments && post.comments.length || 0} 
+              comments
             </Text>
             <Box w={0.5} h={0.5} borderRadius={"full"} bg={"gray.light"}></Box>
             <Text color={"gray.light"} fontSize={"sm"}>
-              {likes} likes
+              { post.likes && post.likes.length || 0} 
+              likes
             </Text>
           </Flex>
         </Flex>
@@ -124,4 +143,5 @@ const UserPost = ({ postImg, postTitle, likes, comments }) => {
   );
 };
 
-export default UserPost;
+export default Post;
+ 

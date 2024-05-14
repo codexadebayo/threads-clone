@@ -26,11 +26,13 @@ export default function loginCard() {
   const setAuthScreen = useSetRecoilState(authScreenAtom);
   const setUser = useSetRecoilState(userAtom);
   const showToast = useShowToast();
+  const [loading, setLoading] = useState(false)
   const [inputs, setInputs] = useState({
     username: "",
     password: "",
   });
   const handleLogin = async () => {
+    setLoading(true)
     try {
       console.log(inputs);
       const res = await fetch("/api/users/login", {
@@ -50,7 +52,9 @@ export default function loginCard() {
       console.log(data);
     } catch (error) {
       showToast("Login Error", error, "error");
-    }
+    } finally {
+      setLoading(false);
+    };
   };
 
   return (
@@ -111,8 +115,9 @@ export default function loginCard() {
               </InputGroup>
             </FormControl>
             <Stack spacing={10} pt={2}>
+              {/* There is a bug with how the client replies error from the backserver for null requests.  */}
               <Button
-                loadingText="Logging in..."
+                loadingText="Logging in"
                 size="lg"
                 bg={useColorModeValue("gray.600", "gray.700")}
                 color={"white"}
@@ -120,6 +125,7 @@ export default function loginCard() {
                   bg: useColorModeValue("gray.700", "gray.800"),
                 }}
                 onClick={handleLogin}
+                isLoading={loading}
               >
                 Login
               </Button>
